@@ -70,7 +70,7 @@ public class ChangeRegistersController implements Initializable {
     private void loadTable() {
         try {
             TimeRegister timeRegister = new TimeRegister(user.getUser(), "", "");
-            ObservableList<TimeRegister> timeRegisters = timeRegister.getTimeRegisters();
+            ObservableList<TimeRegister> timeRegisters = timeRegister.getTimeRegistersObservableList();
             this.tblTable.setItems(timeRegisters);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -222,7 +222,7 @@ public class ChangeRegistersController implements Initializable {
                 isValid = false;
             }
             if (isValid) {
-                timeRegister.insertTimeRegister();
+                timeRegister.createTimeRegister();
                 new Utilities().showAlert(Alert.AlertType.INFORMATION, "Success", "Información guardada con éxito");
                 setAddNewPane(false);
             } else {

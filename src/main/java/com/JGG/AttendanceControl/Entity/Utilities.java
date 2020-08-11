@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public class Utilities {
 
+    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+
     public boolean showAlert(Alert.AlertType alertType, String title, String contentText){
         boolean confirm = false;
         Alert alert = new Alert(alertType);
@@ -51,6 +53,10 @@ public class Utilities {
     public Date StringToDate(String string) throws ParseException {
         Date date=new SimpleDateFormat("yyyy-MM-dd hh:mm").parse(string);
         return date;
+    }
+
+    public String getDateAsString(LocalDateTime localDateTime){
+        return dateTimeFormatter.format(localDateTime);
     }
 
 

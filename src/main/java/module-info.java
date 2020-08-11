@@ -12,7 +12,7 @@ module AttendanceControlMaven {
     requires java.xml.bind;
     requires com.sun.xml.bind;
     requires com.fasterxml.classmate;
-
+    requires spring.beans;
 
 
     opens com.JGG.AttendanceControl;

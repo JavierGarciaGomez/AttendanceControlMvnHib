@@ -3,12 +3,11 @@ package com.JGG.AttendanceControl.Entity;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.cfg.Configuration;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import javax.persistence.*;
 
 
@@ -16,6 +15,7 @@ import javax.persistence.*;
 @Table(name="users")
 public class User {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="id")
     private int id;
 
@@ -102,24 +102,39 @@ public class User {
     }
 
     // Another getters
-    public User getUser(String username) throws SQLException {
-        ConnectionDB connectionDB = new ConnectionDB();
-        String sql = "SELECT * FROM users WHERE user = '" + this.user+"'";
-        ResultSet resultSet = connectionDB.executeQuery(sql);
-        resultSet.next();
-        int id=resultSet.getInt(1);
-        String name=resultSet.getString(2);
-        String lastName=resultSet.getString(3);
-        String userName=resultSet.getString(4);
-        String pass=resultSet.getString(5);
-        boolean isActive=resultSet.getBoolean(6);
-        User user = new User(id, name, lastName, userName, pass, isActive);
-        connectionDB.closeConnection();
-
-        return user;
+    public User getUserbyId(int id) {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        User tempUser = session.get(User.class, id);
+        session.close();
+        return tempUser;
     }
 
+
+    public User getUserbyUserName(String username) {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        Query query = session.createQuery("from User where user=:user");
+        query.setParameter("user", user);
+        User tempUser = (User) query.getSingleResult();
+        System.out.println("get User 2" + tempUser);
+        session.close();
+        return tempUser;
+    }
+
+
     public int getMaxID() throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        Query query = session.createQuery("select MAX(id) from User");
+        int maxId= (Integer) query.getSingleResult();
+        session.close();
+        return maxId;
+
+/*
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT MAX(ID) FROM USERS";
         ResultSet resultSet = connectionDB.executeQuery(sql);
@@ -127,12 +142,33 @@ public class User {
         int maxId=resultSet.getInt(1);
         connectionDB.closeConnection();
         return maxId;
+*/
+    }
+
+    public List<User> getUsers(){
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        org.hibernate.query.Query <User> query = session.createQuery("from User order by user", User.class);
+        List<User> users = query.getResultList();
+        System.out.println("getUsers()\n"+users);
+        session.close();
+        return users;
     }
 
 
     public ObservableList<String> getUsersNames() throws SQLException {
+        List<User> users = this.getUsers();
         ObservableList<String> userNames = FXCollections.observableArrayList();
+        for(User u:users){
+            userNames.add(u.getUser());
+        }
+        userNames.sort((s1, s2)-> s1.compareTo(s2));
+        return userNames;
+/*
 
+
+        ObservableList<String> userNames = FXCollections.observableArrayList();
         // SQL
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT user FROM users";
@@ -146,11 +182,13 @@ public class User {
         }
         userNames.sort((s1, s2) -> s1.compareTo(s2));
         return userNames;
+*/
     }
 
 
     // CRUD
-    public void addUser() throws SQLException {
+    // TODO delete
+/*    public void addUser() throws SQLException {
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)";
         PreparedStatement preparedStatement = connectionDB.getConnection().prepareStatement(sql);
@@ -167,55 +205,67 @@ public class User {
 
         connectionDB.closeConnection();
 
+    }*/
+
+    // TODO 20200810
+    public void createUser() {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        this.setId(0); // if the id is 0 then it creates one.
+        session.save(this);
+        session.getTransaction().commit();
+        System.out.println("Inserting new user" + this);
+        session.close();
     }
 
 
+
     // Another methods
-    public boolean checkLogin() throws SQLException {
+    // TODO delete
+/*    public boolean checkLogin() throws SQLException {
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT * FROM users WHERE user = '" + user + "' AND pass ='" + pass + "'";
         ResultSet resultSet = connectionDB.executeQuery(sql);
         boolean isUser = resultSet.next();
         connectionDB.closeConnection();
         return isUser;
-    }
+    }*/
+
+
 
     // TODO test hibernate
     public boolean checkLogin2() {
-        SessionFactory factory = new Configuration().configure().addAnnotatedClass(User.class).buildSessionFactory();
-        Session session = factory.getCurrentSession();
-
-        session.beginTransaction();
-        Query query = session.createQuery("from User where user=:user and pass=:pass");
-        query.setParameter("user", user);
-        query.setParameter("pass", pass);
-        User tempUser = (User) query.getSingleResult();
-        System.out.println(tempUser);
-        return false;
-
-
-
-                /*session.beginTransaction();
-        User user = session.get(User.class, 1);
-        System.out.println(user);
-        session.getTransaction().commit();
-
-        System.out.println(user);
-        */
-
+        User tempUser = getUserbyUserName(this.getName());
+        if(this.getPass().equals(tempUser.getPass())) return true;
+        else return false;
     }
 
 
     public boolean checkAvailableId() throws SQLException {
-        ConnectionDB connectionDB = new ConnectionDB();
+        User tempUser = this.getUserbyId(this.getId());
+        if(tempUser==null){
+            return true;
+        } else{
+            return false;
+        }
+
+/*        ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT * FROM users WHERE id = " + this.id;
         ResultSet resultSet = connectionDB.executeQuery(sql);
         boolean isAvailable = !resultSet.next();
         connectionDB.closeConnection();
-        return isAvailable;
+        return isAvailable;*/
     }
 
     public boolean checkAvailableUser() throws SQLException {
+        User tempUser = this.getUserbyUserName(this.getUser());
+        if(tempUser==null){
+            return true;
+        } else{
+            return false;
+        }
+/*
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT * FROM users WHERE user = '" + this.user+"'";
         System.out.println(sql);
@@ -223,6 +273,7 @@ public class User {
         boolean isAvailable = !resultSet.next();
         connectionDB.closeConnection();
         return isAvailable;
+*/
     }
 
     @Override

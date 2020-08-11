@@ -2,19 +2,34 @@ package com.JGG.AttendanceControl.Entity;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.hibernate.Session;
+
+import javax.persistence.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
+@Entity
+@Table(name="attendanceRegister")
 public class TimeRegister {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="id")
     private int id;
+    @Column(name="userName")
     private String userName;
+    @Column(name="branch")
     private String branch;
+    @Column(name="action")
     private String action;
+    @Column(name="time")
+    private Timestamp timestamp;
+    @Column(name="status")
+    private String status;
+    @Transient
     private LocalDateTime localDateTime;
-    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-
 
     public TimeRegister() {
     }
@@ -54,10 +69,41 @@ public class TimeRegister {
     public LocalDateTime getLocalDateTime() {
         return localDateTime;
     }
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+    public void setBranch(String branch) {
+        this.branch = branch;
+    }
+    public void setAction(String action) {
+        this.action = action;
+    }
+    public Timestamp getTimestamp() {
+        return timestamp;
+    }
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
+    public void setLocalDateTime(LocalDateTime localDateTime) {
+        this.localDateTime = localDateTime;
+    }
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     // Other getters
     public String getDateAsString() {
-        return dateTimeFormatter.format(this.localDateTime);
+        if(localDateTime==null){
+            localDateTime=this.timestamp.toLocalDateTime();
+        }
+        return new Utilities().getDateAsString(this.localDateTime);
     }
 
 
@@ -66,7 +112,19 @@ public class TimeRegister {
      */
 
     // CREATE
-    public void insertTimeRegister() throws SQLException {
+    public void createTimeRegister() throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        this.setId(0); // if the id is 0 then it creates one.
+        this.setTimestamp(this.convertLdtToTS(this.getLocalDateTime()));
+        session.save(this);
+
+        session.getTransaction().commit();
+        System.out.println("Inserting new time" + this);
+        session.close();
+/*
+
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "INSERT INTO attendanceRegister (userName, branch, action, time) VALUES (?, ?, ?, ?)";
         PreparedStatement preparedStatement = connectionDB.getConnection().prepareStatement(sql);
@@ -76,11 +134,24 @@ public class TimeRegister {
         preparedStatement.setTimestamp(4, Timestamp.valueOf(this.localDateTime));
         System.out.println(preparedStatement);
         preparedStatement.execute();
-        connectionDB.closeConnection();
+        connectionDB.closeConnection();*/
     }
 
     // READERS
     public TimeRegister getLastTimeRegister(String userName) throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        Query query = session.createQuery("from TimeRegister as tr where tr.userName=:userName and timestamp = " +
+                "(select MAX (timestamp) from TimeRegister where userName=:userName)");
+        query.setParameter("userName", userName);
+        TimeRegister tempTimpeRegister = (TimeRegister) query.getSingleResult();
+        session.close();
+        return tempTimpeRegister;
+/*
+
+
+
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT * FROM attendanceRegister WHERE time = " +
                 "(SELECT MAX(time) FROM attendanceRegister WHERE username=?)";
@@ -95,9 +166,20 @@ public class TimeRegister {
         String action = resultSet.getString(4);
         LocalDateTime localDateTime = resultSet.getTimestamp(5).toLocalDateTime();
         return new TimeRegister(id, userName, branch, action, localDateTime);
+*/
     }
 
     public int getMaxID() throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        Query query = session.createQuery("select MAX(id) from TimeRegister ");
+        int maxId= (Integer) query.getSingleResult();
+        session.close();
+        return maxId;
+/*
+
+
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT MAX(ID) FROM attendanceRegister";
         ResultSet resultSet = connectionDB.executeQuery(sql);
@@ -105,10 +187,26 @@ public class TimeRegister {
         int maxId=resultSet.getInt(1);
         connectionDB.closeConnection();
         return maxId;
+*/
+    }
+
+    public List<TimeRegister> getTimeRegisters(){
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        org.hibernate.query.Query <TimeRegister> query = session.createQuery("from TimeRegister order by timestamp asc", TimeRegister.class);
+        List<TimeRegister> timeRegisters = query.getResultList();
+        session.close();
+        return timeRegisters;
     }
 
 
-    public ObservableList<TimeRegister> getTimeRegisters() throws SQLException {
+    public ObservableList<TimeRegister> getTimeRegistersObservableList() throws SQLException {
+        List<TimeRegister> timeRegisters = this.getTimeRegisters();
+        ObservableList<TimeRegister> timeRegisterObservableArrayList = FXCollections.observableArrayList(timeRegisters);
+        return timeRegisterObservableArrayList;
+
+/*
         ObservableList<TimeRegister> timeRegisters = FXCollections.observableArrayList();
 
         // SQL
@@ -129,11 +227,20 @@ public class TimeRegister {
             timeRegisters.add(timeRegister);
         }
         return timeRegisters;
+*/
     }
 
     public ObservableList<TimeRegister> getTimeRegistersforUser() throws SQLException {
         ObservableList<TimeRegister> timeRegisters = FXCollections.observableArrayList();
+        List<TimeRegister> allTimeRegisters = this.getTimeRegisters();
+        for(TimeRegister t:allTimeRegisters){
+            if(t.getUserName().equals(this.getUserName())){
+                timeRegisters.add(t);
+            }
+        }
+        return timeRegisters;
 
+/*
         // SQL
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "SELECT * FROM attendanceRegister WHERE username=?";
@@ -153,10 +260,23 @@ public class TimeRegister {
             timeRegisters.add(timeRegister);
         }
         return timeRegisters;
+*/
     }
 
     // UPDATE
     public void updateTimeRegister() throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        this.setTimestamp(this.convertLdtToTS(this.getLocalDateTime()));
+        session.saveOrUpdate(this);
+
+        session.getTransaction().commit();
+        System.out.println("Inserting new time" + this);
+        session.close();
+
+/*
+
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "UPDATE attendanceRegister SET username = ?, branch=?, action=?, time=? WHERE id=?";
 
@@ -169,10 +289,20 @@ public class TimeRegister {
         System.out.println(preparedStatement);
         preparedStatement.execute();
         connectionDB.closeConnection();
+*/
     }
 
     // DELETE
     public void deleteTimeRegister() throws SQLException {
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+        session.delete(this);
+        session.getTransaction().commit();
+        session.close();
+
+/*
+
         ConnectionDB connectionDB = new ConnectionDB();
         String sql = "DELETE FROM attendanceRegister WHERE id=?";
         PreparedStatement preparedStatement = connectionDB.getConnection().prepareStatement(sql);
@@ -180,12 +310,49 @@ public class TimeRegister {
         System.out.println(preparedStatement);
         preparedStatement.execute();
         connectionDB.closeConnection();
+*/
     }
 
 
     // Other methods
 
     public boolean isDateAndActionRegistered() throws SQLException {
+        List<TimeRegister> allTimeRegisters = this.getTimeRegisters();
+        for(TimeRegister t:allTimeRegisters){
+            if(t.localDateTime==null) t.localDateTime=t.timestamp.toLocalDateTime();
+            System.out.println(this.localDateTime+" "+t.getLocalDateTime());
+            if((t.getUserName().equals(this.getUserName()))&&
+                    (t.getAction().equals(this.getAction()))&&
+                    (t.getLocalDateTime().toLocalDate().equals(this.getLocalDateTime().toLocalDate()))){
+                return true;
+            }
+        }
+        return false;
+
+        /*
+        //First Try
+
+        // Converting LocalDateTime as MySql date
+        LocalDate localDate = this.localDateTime.toLocalDate();
+        Date sqlDate = Date.valueOf(localDate);
+        String tableName = TimeRegister.class.getAnnotation(Table.class).name();
+
+        HibernateConnection hibernateConnection = HibernateConnection.getInstance();
+        Session session= hibernateConnection.getSession();
+        session.beginTransaction();
+
+        Query query = session.createSQLQuery("select * from attendanceRegister where userName=:userName and action =:action and cast(time as date) = DATE(:sqlDate)");
+        //query.setParameter("tableName", tableName);
+        query.setParameter("userName", userName);
+        query.setParameter("action", action);
+        query.setParameter("sqlDate", sqlDate);
+        TimeRegister tempTimpeRegister = (TimeRegister) query.getSingleResult();
+        System.out.println(tempTimpeRegister);
+        session.close();
+        return false;*/
+
+
+/*
         // Converting LocalDateTime as MySql date
         LocalDate localDate = this.localDateTime.toLocalDate();
         Date sqlDate = Date.valueOf(localDate);
@@ -207,12 +374,22 @@ public class TimeRegister {
         connectionDB.closeConnection();
 
         return isRegistered;
+*/
     }
+
+    private Timestamp convertLdtToTS(LocalDateTime localDateTime) {
+        return Timestamp.valueOf(localDateTime);
+    }
+
 
     // To String
     @Override
     public String toString() {
-        return this.userName + " " + this.action + " en " + this.branch + ", el " + dateTimeFormatter.format(this.localDateTime);
+
+        return this.userName + " " + this.action + " en " + this.branch + ", el " + this.timestamp.toString();
     }
+
+
+
 
 }

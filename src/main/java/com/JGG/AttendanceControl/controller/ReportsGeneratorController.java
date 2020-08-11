@@ -42,7 +42,7 @@ public class ReportsGeneratorController implements Initializable {
         try {
             TimeRegister timeRegister = new TimeRegister(user.getUser(), "", "");
 
-            ObservableList<TimeRegister> timeRegisters = timeRegister.getTimeRegisters();
+            ObservableList<TimeRegister> timeRegisters = timeRegister.getTimeRegistersObservableList();
             this.tblTable.setItems(timeRegisters);
         } catch (SQLException throwables) {
             throwables.printStackTrace();

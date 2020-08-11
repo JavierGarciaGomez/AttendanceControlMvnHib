@@ -1,44 +1,39 @@
 package com.JGG.AttendanceControl.Entity;
 
-import com.sun.xml.bind.v2.TODO;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 
 public class HibernateConnection {
+    private static SessionFactory factory;
+    private Session session;
+    private static HibernateConnection hibernateConnection;
 
-    private final SessionFactory factory;
-    private Session currentSession;
-
-    public HibernateConnection() {
-        factory = new Configuration().configure().addAnnotatedClass(User.class).buildSessionFactory();
+    private HibernateConnection(){
+        factory = new Configuration()
+                .configure()
+                .addAnnotatedClass(User.class)
+                .addAnnotatedClass(TimeRegister.class)
+                .buildSessionFactory();
         Session session = factory.getCurrentSession();
+        System.out.println("Printing from constructor "+session);
     }
 
-    public SessionFactory getFactory() {
-        return factory;
+    public static HibernateConnection getInstance(){
+        if (hibernateConnection==null){
+            hibernateConnection = new HibernateConnection();
+        }
+        return hibernateConnection;
     }
 
-    public Session getCurrentSession() {
-        return currentSession;
-    }
-
-    public void setCurrentSession(Session currentSession) {
-        this.currentSession = currentSession;
+    public Session getSession(){
+        session = factory.getCurrentSession();
+        return session = factory.getCurrentSession();
     }
 
     public void closeSession(){
-        currentSession.close();
+        session.close();
     }
-
-    //TODO
-    /*session.beginTransaction();
-        User user = session.get(User.class, 1);
-        System.out.println(user);
-        session.getTransaction().commit();
-
-        System.out.println(user);
-        */
 
 
 }

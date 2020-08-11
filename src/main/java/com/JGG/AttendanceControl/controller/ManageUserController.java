@@ -79,7 +79,8 @@ public class ManageUserController implements Initializable {
                 isValid = false;
             }
             if (isValid) {
-                user.addUser();
+                // TODO test 20200810... Before user.addUser();
+                user.createUser();
                 addPicture(user);
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -130,7 +131,7 @@ public class ManageUserController implements Initializable {
             char firstChar = nameElements[0].charAt(0);
             char secondChar = nameElements[nameElements.length - 2].charAt(0);
             char thirdChar = nameElements[nameElements.length - 1].charAt(0);
-            String userName = firstChar + Character.toString(secondChar) + thirdChar;
+            String userName = (firstChar + Character.toString(secondChar) + thirdChar).toUpperCase();
 
             txtUser.setText(userName);
         } catch (IndexOutOfBoundsException ignored){

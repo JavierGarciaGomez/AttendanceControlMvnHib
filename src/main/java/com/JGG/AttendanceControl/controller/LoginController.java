@@ -32,7 +32,7 @@ public class LoginController implements Initializable {
         User user = new User(userName, pass);
         if(user.checkLogin2()){
             try {
-                user = user.getUser(userName);
+                user = user.getUserbyUserName(userName);
                 FXMLLoader fxmlLoader = new FXMLLoader(getClass().getClassLoader().getResource("view/Main.fxml"));
                 Parent root = fxmlLoader.load();
 
@@ -61,6 +61,6 @@ public class LoginController implements Initializable {
     }
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        hibernateConnection = new HibernateConnection();
+        hibernateConnection = HibernateConnection.getInstance();
     }
 }

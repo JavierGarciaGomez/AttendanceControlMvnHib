@@ -81,7 +81,7 @@ public class RegisterController implements Initializable {
             }
 
             if(isValid){
-                timeRegister.insertTimeRegister();
+                timeRegister.createTimeRegister();
                 new Utilities().showAlert(Alert.AlertType.INFORMATION, "Success", "Información guardada con éxito");
                 Stage thisStage = (Stage) btnCancel.getScene().getWindow();
                 thisStage.close();
